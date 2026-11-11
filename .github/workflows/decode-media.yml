@@ -1,0 +1,35 @@
+name: Decode media
+
+on:
+  push:
+    paths:
+      - "**/*.b64"
+      - ".github/workflows/decode-media.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode base64 media into binary files
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mapfile -d '' files < <(find . -name '*.b64' -print0)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No .b64 files to decode."
+            exit 0
+          fi
+          for f in "${files[@]}"; do
+            out="${f%.b64}"
+            mkdir -p "$(dirname "$out")"
+            base64 -d "$f" > "$out"
+            rm -f "$f"
+            git add -- "$out" "$f"
+          done
+          git commit -m "Decode base64 media into binary assets."
+          git push
